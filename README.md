@@ -35,6 +35,17 @@ All staking and reward logic is implemented **entirely on-chain**, without relyi
 
 ---
 
+## Deployed Contracts (Sepolia)
+
+| Contract | Address | Etherscan |
+|----------|---------|-----------|
+| **TestDope (THOPE)** | `0xA4D90aee9E74Abb933ACa624838f5a4F85BcB351` | [View](https://sepolia.etherscan.io/address/0xA4D90aee9E74Abb933ACa624838f5a4F85BcB351) |
+| **Staking** | `0xb61Bfe9F5CaaBFf4360997F1c6768D2620d2ae72` | [View](https://sepolia.etherscan.io/address/0xb61Bfe9F5CaaBFf4360997F1c6768D2620d2ae72) |
+
+**Reward Pool:** 100,000 THOPE ✅
+
+---
+
 ## 3. Smart Contracts
 
 ### 3.1 Token.sol – TestDope (THOPE)

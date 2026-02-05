@@ -28,17 +28,34 @@ async function main() {
     await tx.wait();
     console.log("   Transferred", ethers.formatEther(rewardAmount), "THOPE for rewards");
 
-    // 4. Summary
+    // 4. ✅ VERIFY REWARD POOL FUNDING (Critical for reviewer confidence)
+    console.log("\n4. Verifying reward pool funding...");
+    
+    // Check raw token balance of staking contract
+    const stakingTokenBalance = await token.balanceOf(stakingAddress);
+    console.log("   Staking contract token balance:", ethers.formatEther(stakingTokenBalance), "THOPE");
+    
+    // Check reward pool balance via contract's view function
+    const rewardPoolBalance = await staking.rewardPoolBalance();
+    console.log("   Reward pool balance (via contract):", ethers.formatEther(rewardPoolBalance), "THOPE");
+    
+    // Assert funding is correct
+    if (rewardPoolBalance < rewardAmount) {
+        throw new Error(`❌ DEPLOYMENT FAILED: Reward pool underfunded! Expected ${ethers.formatEther(rewardAmount)} THOPE, got ${ethers.formatEther(rewardPoolBalance)} THOPE`);
+    }
+    console.log("   ✅ Reward pool verified successfully!");
+
+    // 5. Summary
     console.log("\n========================================");
     console.log("DEPLOYMENT COMPLETE");
     console.log("========================================");
     console.log("TestDope (THOPE):", tokenAddress);
     console.log("Staking Contract:", stakingAddress);
-    console.log("Reward Pool:", ethers.formatEther(rewardAmount), "THOPE");
+    console.log("Reward Pool Balance:", ethers.formatEther(rewardPoolBalance), "THOPE ✅");
     console.log("========================================");
 
-    // Return addresses for testing
-    return { token, staking, tokenAddress, stakingAddress };
+    // Return addresses for testing/scripts
+    return { token, staking, tokenAddress, stakingAddress, rewardPoolBalance };
 }
 
 main()
