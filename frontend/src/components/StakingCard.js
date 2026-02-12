@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import {
+    useAccount,
+    useReadContract,
+    useWaitForTransactionReceipt,
+    useSendTransaction,
+} from "wagmi";
+import { parseEther, formatEther, encodeFunctionData } from "viem";
 import { CONTRACTS, TOKEN_ABI, STAKING_ABI } from "@/config/contracts";
 
 export default function StakingCard() {
@@ -18,7 +23,7 @@ export default function StakingCard() {
         abi: TOKEN_ABI,
         functionName: "balanceOf",
         args: [address],
-        enabled: !!address,
+        query: { enabled: !!address },
     });
 
     // Read staked balance
@@ -27,7 +32,7 @@ export default function StakingCard() {
         abi: STAKING_ABI,
         functionName: "balanceOf",
         args: [address],
-        enabled: !!address,
+        query: { enabled: !!address },
     });
 
     // Read earned rewards
@@ -36,7 +41,7 @@ export default function StakingCard() {
         abi: STAKING_ABI,
         functionName: "earned",
         args: [address],
-        enabled: !!address,
+        query: { enabled: !!address },
     });
 
     // Read allowance
@@ -45,7 +50,7 @@ export default function StakingCard() {
         abi: TOKEN_ABI,
         functionName: "allowance",
         args: [address, CONTRACTS.staking],
-        enabled: !!address,
+        query: { enabled: !!address },
     });
 
     // Read total staked
@@ -62,12 +67,12 @@ export default function StakingCard() {
         functionName: "rewardPoolBalance",
     });
 
-    // Write contract hooks
-    const { writeContract: approve, data: approveTxHash, isPending: isApproving } = useWriteContract();
-    const { writeContract: stake, data: stakeTxHash, isPending: isStaking } = useWriteContract();
-    const { writeContract: withdraw, data: withdrawTxHash, isPending: isWithdrawing } = useWriteContract();
-    const { writeContract: claimRewards, data: claimTxHash, isPending: isClaiming } = useWriteContract();
-    const { writeContract: exit, data: exitTxHash, isPending: isExiting } = useWriteContract();
+    // Use sendTransaction instead of writeContract to control gas directly
+    const { sendTransaction: sendApproveTx, data: approveTxHash, isPending: isApproving } = useSendTransaction();
+    const { sendTransaction: sendStakeTx, data: stakeTxHash, isPending: isStaking } = useSendTransaction();
+    const { sendTransaction: sendWithdrawTx, data: withdrawTxHash, isPending: isWithdrawing } = useSendTransaction();
+    const { sendTransaction: sendClaimTx, data: claimTxHash, isPending: isClaiming } = useSendTransaction();
+    const { sendTransaction: sendExitTx, data: exitTxHash, isPending: isExiting } = useSendTransaction();
 
     // Wait for transactions
     const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -76,9 +81,16 @@ export default function StakingCard() {
     const { isSuccess: claimSuccess } = useWaitForTransactionReceipt({ hash: claimTxHash });
     const { isSuccess: exitSuccess } = useWaitForTransactionReceipt({ hash: exitTxHash });
 
-    // Refetch on transaction success
+    // Refetch on approval success (don't clear amounts)
     useEffect(() => {
-        if (approveSuccess || stakeSuccess || withdrawSuccess || claimSuccess || exitSuccess) {
+        if (approveSuccess) {
+            refetchAllowance();
+        }
+    }, [approveSuccess]);
+
+    // Refetch on transaction success (clear amounts)
+    useEffect(() => {
+        if (stakeSuccess || withdrawSuccess || claimSuccess || exitSuccess) {
             refetchTokenBalance();
             refetchStakedBalance();
             refetchEarned();
@@ -86,7 +98,7 @@ export default function StakingCard() {
             setStakeAmount("");
             setWithdrawAmount("");
         }
-    }, [approveSuccess, stakeSuccess, withdrawSuccess, claimSuccess, exitSuccess]);
+    }, [stakeSuccess, withdrawSuccess, claimSuccess, exitSuccess]);
 
     // Auto-refresh earned rewards every 5 seconds
     useEffect(() => {
@@ -100,52 +112,72 @@ export default function StakingCard() {
 
     const handleApprove = () => {
         const amount = parseEther(stakeAmount || "0");
-        approve({
-            address: CONTRACTS.token,
+        const data = encodeFunctionData({
             abi: TOKEN_ABI,
             functionName: "approve",
             args: [CONTRACTS.staking, amount],
+        });
+        sendApproveTx({
+            to: CONTRACTS.token,
+            data,
+            gas: 100000n,
         });
     };
 
     const handleStake = () => {
         const amount = parseEther(stakeAmount || "0");
-        stake({
-            address: CONTRACTS.staking,
+        const data = encodeFunctionData({
             abi: STAKING_ABI,
             functionName: "stake",
             args: [amount],
+        });
+        sendStakeTx({
+            to: CONTRACTS.staking,
+            data,
+            gas: 200000n,
         });
     };
 
     const handleWithdraw = () => {
         const amount = parseEther(withdrawAmount || "0");
-        withdraw({
-            address: CONTRACTS.staking,
+        const data = encodeFunctionData({
             abi: STAKING_ABI,
             functionName: "withdraw",
             args: [amount],
         });
+        sendWithdrawTx({
+            to: CONTRACTS.staking,
+            data,
+            gas: 200000n,
+        });
     };
 
     const handleClaim = () => {
-        claimRewards({
-            address: CONTRACTS.staking,
+        const data = encodeFunctionData({
             abi: STAKING_ABI,
             functionName: "claimRewards",
+        });
+        sendClaimTx({
+            to: CONTRACTS.staking,
+            data,
+            gas: 200000n,
         });
     };
 
     const handleExit = () => {
-        exit({
-            address: CONTRACTS.staking,
+        const data = encodeFunctionData({
             abi: STAKING_ABI,
             functionName: "exit",
+        });
+        sendExitTx({
+            to: CONTRACTS.staking,
+            data,
+            gas: 300000n,
         });
     };
 
     const needsApproval = () => {
-        if (!stakeAmount || !allowance) return false;
+        if (!stakeAmount || allowance === undefined) return false;
         try {
             return parseEther(stakeAmount) > allowance;
         } catch {
@@ -201,8 +233,8 @@ export default function StakingCard() {
                 <button
                     onClick={() => setActiveTab("stake")}
                     className={`flex-1 py-2 rounded-lg font-medium transition-all ${activeTab === "stake"
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                         }`}
                 >
                     Stake
@@ -210,8 +242,8 @@ export default function StakingCard() {
                 <button
                     onClick={() => setActiveTab("withdraw")}
                     className={`flex-1 py-2 rounded-lg font-medium transition-all ${activeTab === "withdraw"
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                         }`}
                 >
                     Withdraw
