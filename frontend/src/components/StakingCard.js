@@ -11,6 +11,13 @@ import {
 import { parseEther, formatEther, encodeFunctionData } from "viem";
 import { CONTRACTS, TOKEN_ABI, STAKING_ABI } from "@/config/contracts";
 
+// Tier display config
+const TIER_CONFIG = {
+    Bronze: { color: "text-amber-600", bg: "bg-amber-900/20", border: "border-amber-700/50", emoji: "🥉", apr: "5%" },
+    Silver: { color: "text-gray-300", bg: "bg-gray-500/20", border: "border-gray-500/50", emoji: "🥈", apr: "10%" },
+    Gold: { color: "text-yellow-400", bg: "bg-yellow-900/20", border: "border-yellow-600/50", emoji: "🥇", apr: "15%" },
+};
+
 export default function StakingCard() {
     const { address, isConnected } = useAccount();
     const [stakeAmount, setStakeAmount] = useState("");
@@ -50,6 +57,15 @@ export default function StakingCard() {
         abi: TOKEN_ABI,
         functionName: "allowance",
         args: [address, CONTRACTS.staking],
+        query: { enabled: !!address },
+    });
+
+    // Read user tier
+    const { data: userTier, refetch: refetchTier } = useReadContract({
+        address: CONTRACTS.staking,
+        abi: STAKING_ABI,
+        functionName: "getUserTier",
+        args: [address],
         query: { enabled: !!address },
     });
 
@@ -95,6 +111,7 @@ export default function StakingCard() {
             refetchStakedBalance();
             refetchEarned();
             refetchAllowance();
+            refetchTier();
             setStakeAmount("");
             setWithdrawAmount("");
         }
@@ -190,6 +207,24 @@ export default function StakingCard() {
         return parseFloat(formatEther(value)).toFixed(4);
     };
 
+    // Get tier display config
+    const tier = userTier || "Bronze";
+    const tierInfo = TIER_CONFIG[tier] || TIER_CONFIG.Bronze;
+
+    // Calculate next tier info
+    const getNextTierInfo = () => {
+        const balance = stakedBalance ? parseFloat(formatEther(stakedBalance)) : 0;
+        if (balance >= 10000) return null; // Already Gold
+        if (balance >= 1000) {
+            const needed = 10000 - balance;
+            return { next: "Gold", needed: needed.toFixed(0), nextAPR: "15%" };
+        }
+        const needed = 1000 - balance;
+        return { next: "Silver", needed: needed.toFixed(0), nextAPR: "10%" };
+    };
+
+    const nextTier = getNextTierInfo();
+
     if (!isConnected) {
         return (
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-700 max-w-md mx-auto">
@@ -205,11 +240,37 @@ export default function StakingCard() {
     return (
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-700 max-w-md mx-auto">
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">THOPE Staking</h2>
-                <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
-                    10% APR
+                <span className={`${tierInfo.bg} ${tierInfo.color} ${tierInfo.border} border px-3 py-1 rounded-full text-sm font-medium`}>
+                    {tierInfo.emoji} {tier} · {tierInfo.apr} APR
                 </span>
+            </div>
+
+            {/* Tier Progression */}
+            {nextTier && (
+                <div className="bg-gray-800/50 rounded-lg px-4 py-2 mb-4 text-center">
+                    <p className="text-gray-400 text-xs">
+                        Stake <span className="text-white font-medium">{nextTier.needed} more THOPE</span> for{" "}
+                        <span className={TIER_CONFIG[nextTier.next].color}>{nextTier.next} ({nextTier.nextAPR})</span>
+                    </p>
+                </div>
+            )}
+
+            {/* Tier Info Banner */}
+            <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                <div className={`rounded-lg py-2 px-1 text-xs ${tier === "Bronze" ? "bg-amber-900/30 border border-amber-700/50" : "bg-gray-800/30"}`}>
+                    <div className="text-amber-600 font-medium">🥉 Bronze</div>
+                    <div className="text-gray-400">{"< 1K · 5%"}</div>
+                </div>
+                <div className={`rounded-lg py-2 px-1 text-xs ${tier === "Silver" ? "bg-gray-500/30 border border-gray-500/50" : "bg-gray-800/30"}`}>
+                    <div className="text-gray-300 font-medium">🥈 Silver</div>
+                    <div className="text-gray-400">1K+ · 10%</div>
+                </div>
+                <div className={`rounded-lg py-2 px-1 text-xs ${tier === "Gold" ? "bg-yellow-900/30 border border-yellow-600/50" : "bg-gray-800/30"}`}>
+                    <div className="text-yellow-400 font-medium">🥇 Gold</div>
+                    <div className="text-gray-400">10K+ · 15%</div>
+                </div>
             </div>
 
             {/* Stats Grid */}

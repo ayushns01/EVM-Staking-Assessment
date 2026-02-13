@@ -1,7 +1,7 @@
 // Contract addresses deployed on Sepolia
 export const CONTRACTS = {
-    token: "0xA4D90aee9E74Abb933ACa624838f5a4F85BcB351",
-    staking: "0xb61Bfe9F5CaaBFf4360997F1c6768D2620d2ae72",
+    token: "0x396D0b6A5080e41b656cC89e1Bb09f61406017AC",
+    staking: "0x40036d5614C838583B69984d135e6837A92Ca255",
 };
 
 // Token ABI (ERC20)
@@ -104,7 +104,7 @@ export const TOKEN_ABI = [
     },
 ];
 
-// Staking ABI
+// Staking ABI (Tiered Rewards)
 export const STAKING_ABI = [
     {
         inputs: [],
@@ -115,7 +115,35 @@ export const STAKING_ABI = [
     },
     {
         inputs: [],
-        name: "APR_NUMERATOR",
+        name: "BRONZE_APR",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "GOLD_APR",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "GOLD_THRESHOLD",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "SILVER_APR",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "SILVER_THRESHOLD",
         outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
         stateMutability: "view",
         type: "function",
@@ -149,9 +177,16 @@ export const STAKING_ABI = [
         type: "function",
     },
     {
-        inputs: [],
-        name: "rewardPerToken",
+        inputs: [{ internalType: "uint256", name: "balance", type: "uint256" }],
+        name: "getTierAPR",
         outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "pure",
+        type: "function",
+    },
+    {
+        inputs: [{ internalType: "address", name: "account", type: "address" }],
+        name: "getUserTier",
+        outputs: [{ internalType: "string", name: "", type: "string" }],
         stateMutability: "view",
         type: "function",
     },
@@ -206,6 +241,15 @@ export const STAKING_ABI = [
             { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
         ],
         name: "Staked",
+        type: "event",
+    },
+    {
+        anonymous: false,
+        inputs: [
+            { indexed: true, internalType: "address", name: "user", type: "address" },
+            { indexed: false, internalType: "uint256", name: "newAPR", type: "uint256" },
+        ],
+        name: "TierChanged",
         type: "event",
     },
     {
