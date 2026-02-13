@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "THOPE Staking | 10% APR",
+  title: "THOPE Staking | 5-15% APR",
   description: "Stake TestDope (THOPE) tokens and earn 10% fixed APR",
 };
 

@@ -10,7 +10,7 @@ export default function Home() {
       <header className="border-b border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🔥</span>
+            <span className="text-2xl"></span>
             <span className="text-xl font-bold text-white">THOPE Staking</span>
           </div>
           <ConnectButton />
@@ -23,7 +23,7 @@ export default function Home() {
           Stake <span className="text-blue-400">THOPE</span> & Earn
         </h1>
         <p className="text-gray-400 text-lg mb-2">
-          Fixed <span className="text-green-400 font-bold">10% APR</span> • Calculated per second • No lockup
+          Tiered <span className="text-green-400 font-bold">5-15% APR</span> • Calculated per second • No lockup
         </p>
         <p className="text-gray-500 text-sm">
           Deployed on Sepolia Testnet
